@@ -39,10 +39,10 @@ class Main extends PluginBase implements Listener
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
 
 		if ($otherPlugin === null) {
-        $this->getLogger()->error("Плагин на экономику не был найден!");
-        $pluginManager->disablePlugin($this);
-        return;
-    	}
+        		$this->getLogger()->error("Плагин на экономику не был найден!");
+      			$pluginManager->disablePlugin($this);
+        		return;
+    		}
 
 		$this->saveResource("AllSounds.mcpack", true);
 
@@ -110,7 +110,6 @@ class Main extends PluginBase implements Listener
 			case 'Draws':
 				return $this->PlayerDataConfig->getDraws();
 				break;
-
 			default:
 				return "error";
 				break;
@@ -120,8 +119,8 @@ class Main extends PluginBase implements Listener
 	public function onCommand(CommandSender $player, Command $cmd, string $label, array $args) : bool
 	{
 		if ($cmd->getName() == "game") {
-			if (!$sender instanceof Player) {
-        		$sender->sendMessage("This command can only be executed by a player.");
+			if (!$player instanceof Player) {
+        		$this->getServer()->getLogger->info("This command can only be executed by a player.");
         		return true;
     		}
 			$maxMoney = $this->SettingsCfg->getNested("MaxAmountMoney");
