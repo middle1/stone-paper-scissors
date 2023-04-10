@@ -1,0 +1,12 @@
+name: Game
+version: 1.0.0
+main: GamePlugin\Main
+api: 4.0.0
+author: MiddleDev
+commands:
+  game:
+    permission: middle.game
+    description: "Игра камень, ножницы, бумага"
+permissions:
+  middle.game:
+    default: true
