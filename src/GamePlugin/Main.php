@@ -37,13 +37,7 @@ class Main extends PluginBase implements Listener
 		$pluginManager = $this->getServer()->getPluginManager();
 		$EconomyPlugin = $pluginManager->getPlugin("BedrockEconomy");
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-
-		if ($otherPlugin === null) {
-        		$this->getLogger()->error("Плагин на экономику не был найден!");
-      			$pluginManager->disablePlugin($this);
-        		return;
-    		}
-
+		
 		$this->saveResource("AllSounds.mcpack", true);
 
 		$manager = $this->getServer()->getResourcePackManager();
