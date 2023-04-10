@@ -38,7 +38,7 @@
 Вот инструкция по его использованию. <br>
 <ol>
   <li>Юзинг плагина: </li>
-  <code>$GAmeApi = $this->getServer()->getPluginManager()->getPlugin('Game');</code>
+  <code>$GameApi = $this->getServer()->getPluginManager()->getPlugin('Game');</code>
   <li>Использование</li>
   <h2>Получение побед</h2>
   <code>$wins = $GameApi->getConfigApi(<имя игрока>, "Wins")</code>
