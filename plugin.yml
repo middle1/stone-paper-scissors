@@ -3,6 +3,9 @@ version: 1.0.0
 main: GamePlugin\Main
 api: 4.0.0
 author: MiddleDev
+depend:
+- BedrockEconomy
+
 commands:
   game:
     permission: middle.game
