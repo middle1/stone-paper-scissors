@@ -22,6 +22,8 @@ use GamePlugin\PlaySounds\ {
 	SoundDefeat, SoundWin, SoundDraw
 };
 use GamePlugin\Config\PlayerDataConfig;
+use cooldogedev\BedrockEconomy\api\BedrockEconomyAPI;
+use cooldogedev\BedrockEconomy\libs\cooldogedev\libSQL\context\ClosureContext;
 use ReflectionClass;
 
 class Main extends PluginBase implements Listener
@@ -37,7 +39,7 @@ class Main extends PluginBase implements Listener
 		$pluginManager = $this->getServer()->getPluginManager();
 		$EconomyPlugin = $pluginManager->getPlugin("BedrockEconomy");
 		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-		
+
 		$this->saveResource("AllSounds.mcpack", true);
 
 		$manager = $this->getServer()->getResourcePackManager();
@@ -88,9 +90,9 @@ class Main extends PluginBase implements Listener
 		}
 		$this->PlayerDataConfig = new PlayerDataConfig($name, $this->AllPlayers);
 
-		if (!$this->allplayers->exists($name)) {
-        return "Этот игрок ещё не разу не играл в \"камень, ножницы, бумага\"";
-   		}
+		if (!$this->AllPlayers->exists($name)) {
+			return "Этот игрок ещё не разу не играл в \"камень, ножницы, бумага\"";
+		}
 
 		switch ($Data) {
 			case 'Wins':
@@ -104,6 +106,7 @@ class Main extends PluginBase implements Listener
 			case 'Draws':
 				return $this->PlayerDataConfig->getDraws();
 				break;
+
 			default:
 				return "error";
 				break;
@@ -114,9 +117,9 @@ class Main extends PluginBase implements Listener
 	{
 		if ($cmd->getName() == "game") {
 			if (!$player instanceof Player) {
-        		$this->getServer()->getLogger->info("This command can only be executed by a player.");
-        		return true;
-    		}
+				$this->getServer()->getLogger->info("This command can only be executed by a player.");
+				return true;
+			}
 			$maxMoney = $this->SettingsCfg->getNested("MaxAmountMoney");
 			$minMoney = $this->SettingsCfg->getNested("MinAmountMoney");
 			$name = $player->getName();
@@ -136,7 +139,7 @@ class Main extends PluginBase implements Listener
 			}
 
 			$form = new CustomForm(
-				function (Player $player, ?array $dataInput) {
+				function (Player $player, ? array $dataInput) {
 					$maxMoney = $this->SettingsCfg->getNested("MaxAmountMoney");
 					$minMoney = $this->SettingsCfg->getNested("MinAmountMoney");
 					$stone = "1";
@@ -151,12 +154,12 @@ class Main extends PluginBase implements Listener
 					}
 					if ($dataInput[0] > $maxMoney || $dataInput[0] <= $minMoney) {
 						$player->sendMessage("Ставка должна быть от {$minMoney} до {$maxMoney}, ваша ставка -> " . $dataInput[0]);
-						return false;
+						return true;
 					}
 					$this->Form($player, $dataInput, $genid);
 				}
 			);
-			$form->addInput("Ставка", "Введите ставку до {$maxMoney}");
+			$form->addInput("Ставка", "Введите ставку до $maxMoney");
 			$form->sendToPlayer($player);
 		}
 		return true;
@@ -168,132 +171,145 @@ class Main extends PluginBase implements Listener
 		$this->genid = $genid;
 		$name = $player->getName();
 
-		$form = new SimpleForm(
-			function (Player $player, ? int $data) {
-				$name = $player->getName();
-				$name = strtolower($name);
-				$result = $data;
-				if ($result === null) {
-					return true;
-				}
-				switch ($result) {
-					case 0:
-						if ($this->genid == 1) {
-							$DrawSound = new SoundDraw();
-							$player->sendTitle("Ничья");
-							$DrawSound->PlaySoundDraw($player);
-							$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						if ($this->genid == 2) {
-							$WinSound = new SoundWin();
-							$player->sendTitle("Победа за вами!");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'addbalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$WinSound->PlaySoundWin($player);
-							$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						if ($this->genid == 3) {
-							$DefeatSound = new SoundDefeat();
-							$player->sendTitle("Поражение");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'removebalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$DefeatSound->PlaySoundDefeat($player);
-							$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						break;
+		BedrockEconomyAPI::legacy()->getPlayerBalance(
+			$name,
+			ClosureContext::create(
+				function (int $balance) use ($dataInput, $player) {
+					if ($balance < $dataInput[0]) {
+						$player->sendMessage("Не хватает деняг, ваш баланс $balance меньше чем ваш ввод $dataInput[0]");
+						return true;
+					}
 
-					case 1:
-						if ($this->genid == 1) {
-							$DefeatSound = new SoundDefeat();
-							$player->sendTitle("Поражение");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'removebalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$DefeatSound->PlaySoundDefeat($player);
-							$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						if ($this->genid == 2) {
-							$DrawSound = new SoundDraw();
-							$player->sendTitle("Ничья");
-							$DrawSound->PlaySoundDraw($player);
-							$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						if ($this->genid == 3) {
-							$WinSound = new SoundWin();
-							$player->sendTitle("Победа за вами");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'addbalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$WinSound->PlaySoundWin($player);
-							$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						break;
+					$form = new SimpleForm(
+						function (Player $player, ?int $data) {
+							$name = $player->getName();
+							$name = strtolower($name);
+							$result = $data;
+							if ($result === null) {
+								return true;
+							}
+							switch ($result) {
+								case 0:
+									if ($this->genid == 1) {
+										$DrawSound = new SoundDraw();
+										$player->sendTitle("Ничья");
+										$DrawSound->PlaySoundDraw($player);
+										$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 2) {
+										$WinSound = new SoundWin();
+										$player->sendTitle("Победа за вами!");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'addbalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$WinSound->PlaySoundWin($player);
+										$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 3) {
+										$DefeatSound = new SoundDefeat();
+										$player->sendTitle("Поражение");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'removebalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$DefeatSound->PlaySoundDefeat($player);
+										$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									break;
 
-					case 2:
-						if ($this->genid == 1) {
-							$WinSound = new SoundWin();
-							$player->sendTitle("Победа за вами");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'addbalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$WinSound->PlaySoundWin($player);
-							$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
-							$this->AllPlayers->save();
-							return true;
+								case 1:
+									if ($this->genid == 1) {
+										$DefeatSound = new SoundDefeat();
+										$player->sendTitle("Поражение");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'removebalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$DefeatSound->PlaySoundDefeat($player);
+										$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 2) {
+										$DrawSound = new SoundDraw();
+										$player->sendTitle("Ничья");
+										$DrawSound->PlaySoundDraw($player);
+										$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 3) {
+										$WinSound = new SoundWin();
+										$player->sendTitle("Победа за вами");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'addbalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$WinSound->PlaySoundWin($player);
+										$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									break;
+
+								case 2:
+									if ($this->genid == 1) {
+										$WinSound = new SoundWin();
+										$player->sendTitle("Победа за вами");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'addbalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$WinSound->PlaySoundWin($player);
+										$this->AllPlayers->setNested("{$name}.Wins", $this->AllPlayers->getNested("{$name}.Wins") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 2) {
+										$DefeatSound = new SoundDefeat();
+										$player->sendTitle("Поражение");
+										$this->getServer()->dispatchCommand(
+											new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
+											'removebalance ' . $name . ' ' . $this->dataInput[0]
+										);
+										$DefeatSound->PlaySoundDefeat($player);
+										$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									if ($this->genid == 3) {
+										$DrawSound = new SoundDraw();
+										$player->sendTitle("Ничья");
+										$DrawSound->PlaySoundDraw($player);
+										$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
+										$this->AllPlayers->save();
+										return true;
+									}
+									break;
+							}
 						}
-						if ($this->genid == 2) {
-							$DefeatSound = new SoundDefeat();
-							$player->sendTitle("Поражение");
-							$this->getServer()->dispatchCommand(
-								new ConsoleCommandSender($this->getServer(), $this->getServer()->getLanguage()),
-								'removebalance ' . $name . ' ' . $this->dataInput[0]
-							);
-							$DefeatSound->PlaySoundDefeat($player);
-							$this->AllPlayers->setNested("{$name}.Defeat", $this->AllPlayers->getNested("{$name}.Defeat") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						if ($this->genid == 3) {
-							$DrawSound = new SoundDraw();
-							$player->sendTitle("Ничья");
-							$DrawSound->PlaySoundDraw($player);
-							$this->AllPlayers->setNested("{$name}.Draws", $this->AllPlayers->getNested("{$name}.Draws") + 1);
-							$this->AllPlayers->save();
-							return true;
-						}
-						break;
-				}
-			}
+					);
+
+					$defeats = $this->getConfigApi($player, "Defeats");
+					$wins = $this->getConfigApi($player, "Wins");
+
+					$form->setTitle("Ваш выбор");
+					$form->addButton("Камень", 0, "textures/blocks/stone");
+					$form->addButton("Ножници", 0, "textures/items/shears");
+					$form->addButton("Бумага", 0, "textures/items/paper");
+					$form->setContent(
+						"Пораженний -> " . $defeats . "\nПобеды -> " . $wins . "\nВаш D/W -> " . $this->Math($wins, $defeats)
+					);
+					$form->sendToPlayer($player);
+				},
+			)
 		);
-		$defeats = $this->getConfigApi($player, "Defeats");
-		$wins = $this->getConfigApi($player, "Wins");
-
-		$form->setTitle("Ваш выбор");
-		$form->addButton("Камень", 0, "textures/blocks/stone");
-		$form->addButton("Ножници", 0, "textures/items/shears");
-		$form->addButton("Бумага", 0, "textures/items/paper");
-		$form->setContent(
-			"Пораженний -> " . $defeats . "\nПобеды -> " . $wins . "\nВаш D/W -> " . $this->Math($wins, $defeats)
-		);
-		$form->sendToPlayer($player);
 	}
 }
