@@ -1,0 +1,8 @@
+--- # Poggit-CI Manifest. Open the CI at https://poggit.pmmp.io/ci/middle1/stone-paper-scissors
+build-by-default: true
+branches:
+- main
+projects:
+  stone-paper-scissors:
+    path: ""
+...
