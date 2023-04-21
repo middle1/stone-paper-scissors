@@ -71,7 +71,7 @@ class Main extends PluginBase implements Listener
         if ($FuncInteract == false) {
             $InteractHandler = new InteractHandler($this, $this->SettingsCfg, $this->getServer());
             $pluginManager->registerEvents($InteractHandler, $this);
-	    $this->getServer()->getLogger()->info("Логгер запущен -----------------");
+
         }
     }
 
